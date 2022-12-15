@@ -1,0 +1,154 @@
+{% extends 'main/basePages.html' %}
+
+{% block title %}
+Рыбалка
+{% endblock %}
+
+{% block style %}
+.roulette-wrapper{
+  position:relative !important;
+  display:flex !important;
+  justify-content:center !important;
+  width:100% !important;
+  margin:0 auto !important;
+  overflow:hidden !important;
+}
+
+.roulette-wrapper .selector{
+  width:3px !important;
+  background:grey !important;
+  left:50% !important;
+  height:100% !important;
+  transform:translate(-50%,0%) !important;
+  position:absolute !important;
+  z-index:2 !important;
+}
+
+.roulette-wrapper .wheel{
+  display:flex !important;
+}
+
+.roulette-wrapper .wheel .row{
+  display:flex !important;
+}
+
+.row{
+  flex-wrap: nowrap !important;
+}
+
+.roulette-wrapper .wheel .row .card{
+  height:75px !important;
+  width:75px !important;
+  margin:3px;
+  border-radius:8px !important;
+  border-bottom:3px solid rgba(0,0,0,0.2) !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  color:white !important;
+  font-size:1.5em !important;
+}
+
+.row {
+  margin-right: 0px !important;
+  margin-left: 0px !important;
+}
+
+.card.red{
+  background:#F95146;
+}
+
+.card.black{
+  background:#2D3035;
+}
+
+.card.green{
+  background:#00C74D;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+{% endblock %}
+
+{% block script %}
+$(document).ready(function() {
+	//setup multiple rows of colours, can also add and remove while spinning but overall this is easier.
+	initWheel();
+    if ({{fish_id}} > -1) {
+        spinWheel({{fish_id}} - 1);
+    }
+});
+
+function initWheel(){
+	var $wheel = $('.roulette-wrapper .wheel'),
+  		row = "";
+
+  row += "<div class='row'>";
+    {% for fsh in fish %}
+    row += "  <div class='card' style='background-size: 100% 100%; background-image: url({{fsh.photo}})'><\/div>";
+    {% endfor %}
+  row += "<\/div>";
+
+	for(var x = 0; x < 100; x++){
+  	$wheel.append(row);
+  }
+}
+
+function spinWheel(roll){
+  var $wheel = $('.roulette-wrapper .wheel'),
+  		order = [0, 11, 5, 10, 6, 9, 7, 8, 1, 14, 2, 13, 3, 12, 4],
+      position = order.indexOf(roll);
+
+  //determine position where to land
+  var rows = {{fish.count}},
+  		card = 75 + 3 * 2,
+      landingPosition = (rows * 15 * card) + (position * card);
+
+  var randomize = Math.floor(Math.random() * 75);
+
+  landingPosition = landingPosition + randomize;
+
+  var object = {
+		x: Math.floor(Math.random() * 50) / 100,
+    y: Math.floor(Math.random() * 20) / 100
+	};
+
+  $wheel.css({
+		'transition-timing-function':'cubic-bezier(0,'+ object.x +','+ object.y + ',1)',
+		'transition-duration':'6s',
+		'transform':'translate3d(-'+landingPosition+'px, 0px, 0px)'
+	});
+
+  setTimeout(function(){
+		$wheel.css({
+			'transition-timing-function':'',
+			'transition-duration':'',
+		});
+
+    var resetTo = -(position * card + randomize);
+		$wheel.css('transform', 'translate3d('+resetTo+'px, 0px, 0px)');
+  }, 6 * 1000);
+}
+{% endblock %}
+
+{% block content %}
+<h1>Рыбалка</h1>
+{% if request.user.is_authenticated %}
+<div class='roulette-wrapper'>
+    <div class='selector'></div>
+    <div class='wheel'></div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <button class="w-100 btn btn-lg btn-primary mt-3" type="submit">Рыбачить</button>
+</form>
+{% else %}
+<div class="alert alert-danger" role="alert">
+    Войдите чтобы сыграть!
+</div>
+{% endif %}
+
+{% endblock %}
